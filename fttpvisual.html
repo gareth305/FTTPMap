@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityFibre Rollout Map</title>
+    <!-- Include Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 1000px;
+            width: 100%;
+        }
+
+        .legend {
+            background-color: white;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+
+        .legend img {
+            width: 32px;
+            height: 32px;
+            vertical-align: middle;
+        }
+
+        .legend p {
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .legend div {
+            margin-bottom: 10px;
+        }
+    </style>
+    <!-- Include PapaParse JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+    <h1>Map of CityFibres rollout progress</h1>
+    <div id="map"></div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <h4>Legend</h4>
+        <div>
+            <img src="http://localhost:8000/FTTPMap/Icons/green.png" alt="Green Icon">
+            <p>Green: You can connect to the CityFibre network</p>
+        </div>
+        <div>
+            <img src="http://localhost:8000/FTTPMap/Icons/orange.png" alt="Orange Icon">
+            <p>Orange: Great news! CityFibre is coming to your home</p>
+        </div>
+        <div>
+            <img src="http://localhost:8000/FTTPMap/Icons/red.png" alt="Red Icon">
+            <p>Red: Thanks for your interest, we haven’t planned your area at the moment</p>
+        </div>
+    </div>
+
+    <!-- Include Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map and set its view to a starting location and zoom level
+        var map = L.map('map').setView([53.45173, -2.68262], 15);
+
+        // Add a tile layer to add to our map, in this case it's OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Define different icons for each category
+        var greenIcon = new L.Icon({
+            iconUrl: 'http://localhost:8000/FTTPMap/Icons/green.png',
+            iconSize: [16, 16],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            iconUrl: 'http://localhost:8000/FTTPMap/Icons/green.png'
+        });
+
+        var orangeIcon = new L.Icon({
+            iconUrl: 'http://localhost:8000/FTTPMap/Icons/orange.png',
+            iconSize: [16, 16],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            iconUrl: 'http://localhost:8000/FTTPMap/Icons/orange.png'
+        });
+
+        var redIcon = new L.Icon({
+            iconUrl: 'http://localhost:8000/FTTPMap/Icons/red.png',
+            iconSize: [16, 16],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            iconUrl: 'http://localhost:8000/FTTPMap/Icons/red.png'
+        });
+
+        // Fetch and parse the CSV file
+        Papa.parse('http://localhost:8000/data.csv', {
+            download: true,
+            header: true,
+            complete: function(results) {
+                var uprns = results.data;
+                // Loop through the UPRNs and add markers to the map
+                uprns.forEach(function(uprn) {
+                    // Determine the icon color based on the heading value
+                    var icon = redIcon; // default to red
+
+                    if (uprn.heading.includes("You can connect to the CityFibre network")) {
+                        icon = greenIcon;
+                    } else if (uprn.heading.includes("We'll soon be able to provide you with a range of broadband service providers to choose from")) {
+                        icon = greenIcon;
+                    } else if (uprn.heading.includes("Great news! We've connected your property to our network")) {
+                        icon = greenIcon;
+                    } else if (uprn.heading.includes("Great news! CityFibre is coming to your home")) {
+                        icon = orangeIcon;
+                    } else if (uprn.heading.includes("We're still building in your area")) {
+                        icon = orangeIcon;
+                    } else if (uprn.heading.includes("We're still building our Full Fibre network in your area.")) {
+                        icon = orangeIcon;
+                    } else if (uprn.heading.includes("We're still building our network in your area.")) {
+                        icon = orangeIcon;
+                    }
+
+                    var marker = L.marker([uprn.lat, uprn.lon], {icon: icon}).addTo(map);
+                    marker.bindPopup("<b>UPRN:</b> " + uprn.id + "<br/><b>Response:</b> " + uprn.heading);
+                });
+            },
+            error: function(error) {
+                console.error('Error loading CSV:', error);
+            }
+        });
+    </script>
+</body>
+</html>
